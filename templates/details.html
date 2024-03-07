@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ task.title }}</h1>
+<p>{{ task.desc }}</p>
+<p>{% if task.status%} completed
+    {% else  %}
+    not done
+    {%endif%}
+</p>
+<!-- Add more fields as needed -->
+{% endblock %}

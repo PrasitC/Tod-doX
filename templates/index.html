@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+
+
+{% block content %}
+
+
+
+
+
+ <link rel="stylesheet" type="text/css" href="../static/style.css">
+ <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+</head>
+
+<body style="background-color: rgba(0, 63, 198, 0.23);">
+
+    <div id="root" class="bg-light card-columns">
+        {% if user.is_authenticated %}
+        <h3 class="bg-dark text-white p-2"> Hi There, {{user}}</h3>
+        {% endif %}
+
+        <div class="p-4">
+            <div class="p-2">
+            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addTodoModal">
+                Add New Todo
+              </button>
+            </div>
+
+              
+        
+        <div class="text-center card py-2">
+            <input type="text" name="seach" id="searchinput" oninput="searchThis(event)" placeholder="Search ">
+        </div>
+        <div class="p-2">
+       
+    </div>
+        <div id="todoArea" class="list-group">
+            {% for task in tasks %}
+            <!-- Display the task here -->
+           
+            <div class="list-group-item {% if task.status %}list-group-item-success{% else %}list-group-item-danger{% endif %}">
+                <h5>{{ task.title }}</h5>
+                <p>{{ task.desc }}</p>
+                <p>{% if task.status %} completed {% else %} not done {% endif %}</p>
+            </div>
+             {% endfor %}
+
+
+        </div>
+    </div>
+
+
+
+
+
+
+    <div class="modal fade" id="addTodoModal" tabindex="-1" role="dialog" aria-labelledby="addTodoModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="addTodoModalLabel">Add New Todo</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <!-- Add your form for adding a new todo here -->
+              <form class="card py-2" method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div id="inp">
+                    <label for="newitem">New Todo</label>
+                    <input type="text" name="title" id="newitem" placeholder="Add new todo here" class="form-control">
+                    <label for="desc">Description</label>
+                    <textarea name="desc" id="desc" cols="30" rows="1" placeholder="Add Description" class="form-control"></textarea>
+                    <label for="date"> Date</label>
+                    <input type="datetime-local" name="date" id="date" placeholder="Due Date" class="w-50">
+                    <label for="file">Attachment</label>
+                    <input type="file" name="file" id="file" placeholder="Add Attachment">
+                </div>
+                
+            </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+              <button type="button" class="btn btn-primary" onclick="submitToDo(event)">Save changes</button>
+            </div>
+          </div>
+        </div>
+      
+  
+    </div>
+
+
+    <div class="modal fade" id="updateTodoModal" tabindex="-1" role="dialog" aria-labelledby="updateTodoModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <!-- Modal content goes here -->
+                <form class="card py-2" method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div id="inp">
+                        <label for="updateitem">New Todo</label>
+                        <input type="text" name="title" id="updateitem" placeholder="Add new todo here" class="form-control">
+                        <label for="updatedesc">Description</label>
+                        <textarea name="desc" id="updatedesc" cols="30" rows="1" placeholder="Add Description" class="form-control"></textarea>
+                        <label for="updatedate"> Date</label>
+                        <input type="datetime-local" name="date" id="updatedate" placeholder="Due Date" class="w-50">
+                        <label for="updatefile">Attachment</label>
+                        <input type="file" name="file" id="updatefile" placeholder="Add Attachment">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update Task</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+
+    <script>
+
+        const url = "/api/todo/"
+        var todoList;
+
+
+        function searchThis(event){
+            event.preventDefault()
+            createToDoList(event.target.value)
+        }
+
+
+        // cokie validation
+        function getCookie(name) { // copied from django doc
+            if (!document.cookie) {
+                return null;
+            }
+            const token = document.cookie.split(';')
+                .map(c => c.trim())
+                .filter(c => c.startsWith(name + '='));
+
+            if (token.length === 0) {
+                return null;
+            }
+            return decodeURIComponent(token[0].split('=')[1]);
+        }
+        const headers = {
+            // 'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}' //getCookie('csrftoken')
+        }
+
+        function dtParser(dt) {
+            let dd = new Date(dt)
+            return dd.toLocaleDateString() + " " + dd.toLocaleTimeString()
+        }
+
+        function logOutUser() {
+            fetch('/logout/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}' //getCookie('csrftoken')
+                },
+                data: {}
+            }).then(function (res) {
+                window.location.href = '/'
+            }
+            )
+        }
+
+
+
+        function submitToDo(e) {
+            e.preventDefault()
+            var dat = new FormData($('form')[0])
+            // console.log('----------------------', Object.fromEntries(new FormData($('form')[0])))
+
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}' //getCookie('csrftoken')
+                },
+                body: dat
+            }
+            ).then(function (res) {
+                // console.log(res)
+                if (res.status == 201) {
+                    createToDoList()
+                    $('form')[0].reset();
+                }
+            })
+        }
+      
+        // Store the id of the to-do item
+let currentId;
+
+function openUpdateModal(id) {
+    // Fetch the data of the to-do item
+    fetch(`${url}${id}/`).then(res => res.json()).then(function (item) {
+        // Fill the modal with the data
+        document.getElementById('updateitem').value = item.title;
+        document.getElementById('updatedesc').value = item.desc;
+        document.getElementById('updatedate').value = item.date;
+        // Store the id
+        currentId = id;
+        // Open the modal
+        $('#updateTodoModal').modal('show');
+    });
+}
+
+// This function handles the submit event of the update form
+document.querySelector('#updateTodoModal form').addEventListener('submit', function (event) {
+    event.preventDefault();
+    // Get the data from the form
+    let title = document.getElementById('updateitem').value;
+    let desc = document.getElementById('updatedesc').value;
+    let date = document.getElementById('updatedate').value;
+    // Send a PUT request to update the to-do item
+    fetch(`${url}${currentId}/`, {
+        method: 'PUT',
+        headers: {
+            ...headers,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ title: title, desc: desc, date: date })
+    }).then(function (response) {
+        if (response.ok) {
+            // Close the modal
+            $('#updateTodoModal').modal('hide');
+            // Refresh the to-do list
+            createToDoList();
+        } else {
+            throw new Error('Error: ' + response.statusText);
+        }
+    }).catch(function (error) {
+        console.error('There was an error:', error);
+    });
+});
+
+      
+
+
+        // GET request, list all todos
+        function createToDoList(searchparams) {
+            let slug = searchparams!=undefined ? `?search=${searchparams}` : ''
+            fetch(url+slug).then(res => res.json()).then(function (data) {
+                var txt = ''
+                todoList = []
+                // console.log(data)
+
+
+                for (let item of data) {
+                  let due = item.duedate ? `<label class="duedate">Due in ${dtParser(item.duedate)}</label>` : ''
+                  let date = item.completed ? `<label class="completedate">${dtParser(item.datecompleted)}</label>` :due
+                  let status = item.completed ? "Completed" : "Not Completed";
+
+                  txt += 
+                  `<div class='list-group-item todoitem bubble ${item.completed ? "checked" : ""}'>
+                <div class="inforow">
+                    <div class="check-container">
+                        <input type="checkbox" onclick='checkToDo(${item.id})' class="checkbox" ${item.completed ? "checked" : ""}>
+                    </div>
+                    <label class="todotext">
+                        <div class='h6 d-inline'>
+                            ${'!'.repeat(item.priority)}
+                            ${item.title}
+                        </div>
+                        ${item.file != null ? `<a href="${item.file}" target='_blank' class="attachment">
+                            <img src='static/lg.svg'>
+                            </a>` : ''}
+                    </label>
+                    ${date}
+                    <button class='updatebtn' onclick="openUpdateModal(${item.id})">Update</button>
+                    <button class='closebtn' onclick="deleteThisTodo(${item.id})">X</button>
+                </div>
+                <div class="descrow">
+                    <label >${item.desc}</label>
+                </div>
+                <div class="statusrow">
+                    <label>Status: ${status}</label>
+                </div>
+            </div>`
+}
+                document.getElementById('todoArea').innerHTML = txt
+            })
+        }
+        createToDoList()
+
+
+
+
+        // PUT request , modify a entry 
+
+        // checking a entry 
+        function checkToDo(id) {
+            fetch(url + `${id}/`).then(res=>res.json()).then(function (res) {
+
+                comStat =! res.completed 
+                fetch(url + `${id}/`, {
+                    method: "PUT",
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'//getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        'completed': comStat,
+                        'datecompleted': comStat ? new Date().toISOString() : null
+                    })
+                }).then(function (ret) {
+                    if (ret.status == 200) {
+                        createToDoList()
+                    }
+                })
+            })
+
+        }
+        $('#updateTodoModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget) // Button that triggered the modal
+    var taskId = button.data('id') // Extract info from data-* attributes
+
+    // TODO: Fetch the current data of the task and fill in the form
+})
+
+
+
+
+        // DELETE request, remove a entry 
+        function deleteThisTodo(item) {
+            fetch(`${url}${item}/`, {
+                method: 'DELETE',
+                headers: headers,
+            }).then(function (response) {
+                // console.log(response)
+                if (response.status == 204) {
+                    createToDoList()
+                }
+            })
+        }
+
+
+        function updateThisTodo(item, updatedData) {
+    fetch(`${url}${item}/`, {
+        method: 'PUT', // or 'PATCH' if you're doing a partial update
+        headers: {
+            ...headers,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updatedData)
+    }).then(function (response) {
+        if (response.ok) {
+            return response.json();
+        } else {
+            throw new Error('Error: ' + response.statusText);
+        }
+    }).then(function (data) {
+        // The updated to-do item is in 'data'
+        createToDoList();
+    }).catch(function (error) {
+        console.error('There was an error:', error);
+    });
+}
+
+    </script>
+
+    {% endblock %}
